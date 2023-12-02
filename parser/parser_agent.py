@@ -1,24 +1,41 @@
 import json
-
+from enum import Enum
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 
 
+class InputType(Enum):
+    FEEDBACK = 1
+    MOVE_TO_CODE = 2
+    EXIT = 3
+
 def receive_multiline_input(prompt):
     print(prompt)
 
-    # Reading multiple lines of input
     input_lines = []
+    input_type = InputType.FEEDBACK  # Default input type
+
     while True:
         line = input()
         input_lines.append(line)
+
+        # Check for special commands
+        if line == "-code":
+            input_type = InputType.MOVE_TO_CODE
+            input_lines.pop()  # Remove the command line
+            break
+        elif line == "-end":
+            input_type = InputType.EXIT
+            input_lines.pop()  # Remove the command line
+            break
+
+        # Check for two consecutive empty lines
         if len(input_lines) >= 2 and input_lines[-1] == '' and input_lines[-2] == '':
-            # Remove the last two empty lines
-            input_lines = input_lines[:-2]
+            input_lines = input_lines[:-2]  # Remove the last two empty lines
             break
 
     print("input received. processing...")
-    return "\n".join(input_lines)
+    return (input_type, "\n".join(input_lines))
 
 
 def openai_call(prompt):
@@ -96,9 +113,12 @@ take me with feedbacks from there.
 Enter your input here (Enter two consecutive empty lines to finish input, ^c to quit):)
 """
 
-    input_data = receive_multiline_input(prompt=initial_text)
-    data_lines = [line for line in input_data.splitlines() if line.strip() != '']
-    result = analyze_initial_input(input_data)
+    (input_type, input_str) = receive_multiline_input(prompt=initial_text)
+    if input_type != InputType.FEEDBACK:
+        print("No input received. exiting.")
+        return
+    data_lines = [line for line in input_str.splitlines() if line.strip() != '']
+    result = analyze_initial_input(input_str)
 
     while True:
         if result['is_valid_json']:
@@ -108,9 +128,15 @@ Enter your input here (Enter two consecutive empty lines to finish input, ^c to 
             print( f"Parsing attempt:\n{data_lines[0]}\n{data_lines[1]}\n{result}\n")
 
         print("Now, please provide me with feedbacks on the first two lines.")
-        feedback_data = receive_multiline_input(prompt="Enter your feedbacks here (Enter two consecutive empty lines to finish input, ^c to quit):)")
+        (input_type, feedback_data) = receive_multiline_input(prompt="Enter your feedbacks here (Enter two consecutive empty lines to finish input, -code to accept the json format and move to code, -end to exit):)")
+        if input_type == InputType.EXIT:
+            print("Exiting.")
+            return
+        elif input_type == InputType.MOVE_TO_CODE:
+            break
+        result = analyze_feedbacks(feedback_data=feedback_data, original_input_data=input_str, last_parsing_result=result['str'])
 
-        result = analyze_feedbacks(feedback_data=feedback_data, original_input_data=input_data, last_parsing_result=result['str'])
+    result = initial_ask_for_code(original_input_data=input_str, last_parsing_result=result['str'])
 
 
 
