@@ -44,7 +44,7 @@ def openai_call(prompt):
     client = OpenAI()
     messages = [{"role": "user", "content": prompt}]
 
-    print("\033[91m{}\033[00m".format(prompt))
+    # print("\033[91m{}\033[00m".format(prompt))
 
     response: ChatCompletion = client.chat.completions.create(
         # model="gpt-3.5-turbo",
@@ -103,6 +103,24 @@ No explanation, no comments, just the JSONs.
     return ret
 
 
+def initial_ask_for_code(*,original_input_data, last_parsing_result):
+
+    prompt = f"""
+    I'd like you to write a python script that parses the following input text into a valid JSON.
+    this is the input:
+    {original_input_data} 
+    
+    we agreed in the last session on this format ( it's a parsing of the first two lines ):
+    {last_parsing_result} 
+    
+    please write the code that parses the input into the JSONs.
+    the signature is as follows:
+    def parse_line_into_json(input_line:str) -> dict    
+    """
+
+    ret = openai_call(prompt)
+    return ret
+
 def main():
     initial_text = \
 """\nI'm your friendly parser agent.
@@ -137,6 +155,7 @@ Enter your input here (Enter two consecutive empty lines to finish input, ^c to 
         result = analyze_feedbacks(feedback_data=feedback_data, original_input_data=input_str, last_parsing_result=result['str'])
 
     result = initial_ask_for_code(original_input_data=input_str, last_parsing_result=result['str'])
+    print (result['str'])
 
 
 
