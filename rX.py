@@ -4,7 +4,7 @@ import time
 import math
 
 
-def parse_line_into_json(input_line):
+def parse(input_line):
     ret = re.split(':| \| ', input_line)
     return ret
 
@@ -16,7 +16,7 @@ def part1_0():
         data = f.read().splitlines()
         lines = []
         for line in data:
-            line = parse_line_into_json(line)
+            line = parse(line)
             lines.append(line)
 
     for l in lines:
