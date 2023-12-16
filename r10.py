@@ -41,9 +41,9 @@ def part1_0():
 
     S_POS = [0,0]
 
-    with open('r10_input.txt') as f:
+    # with open('r10_input.txt') as f:
     # with open('r10_sample_input1.txt') as f: # encloses 4
-    # with open('r10_sample_input2.txt') as f: # encloses 8
+    with open('r10_sample_input2.txt') as f: # encloses 8
     # with open('r10_sample_input3.txt') as f: # encloses
         data1 =f.read()
         data_hash = hashlib.sha256(data1.encode('utf-8')).digest()
@@ -132,6 +132,7 @@ def part1_0():
         print()
 
 
+    print(step_number)
     print(trapped_cells)
     print(time.time() - last_ts,' seconds')
 
