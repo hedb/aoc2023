@@ -1,4 +1,5 @@
 from enum import Enum
+import heapq
 
 
 SAMPLE_INPUT = """
@@ -17,6 +18,27 @@ SAMPLE_INPUT = """
 4322674655533
 """
 
+
+class HeapQSet:
+    def __init__(self):
+        self.heap = []
+        self.set = set()
+
+    def push(self, item):
+        if item not in self.set:
+            heapq.heappush(self.heap, item)
+            self.set.add(item)
+
+    def pop(self):
+        item = heapq.heappop(self.heap)
+        self.set.remove(item)
+        return item
+
+    def __len__(self):
+        return len(self.heap)
+
+    def __contains__(self, item):
+        return item in self.set
 
 
 def get_neighbors(cell, grid):
@@ -58,10 +80,21 @@ class MCell:
         return "MCELL(%s, %s)" % (self.x, self.y)
 
     def get_distance(self,dir:Direction, stretch_used:int):
+        if self.x == 0 and self.y == 0 and dir == Direction.down and stretch_used == 0:
+            return 0
         return self.distances_by_incoming_dir[dir][stretch_used - 1]
 
     def min_distance(self):
         return min( [min(self.distances_by_incoming_dir[Direction.up]),min(self.distances_by_incoming_dir[Direction.down]),min(self.distances_by_incoming_dir[Direction.left]),min(self.distances_by_incoming_dir[Direction.right])] )
+
+
+    def __eq__(self, other):
+        if not isinstance(other, ArrivalMove):
+            return NotImplemented
+        return self.x == other.x and self.y == other.y
+
+    def __hash__(self):
+        return hash(  ( self.x , self.y )  )
 
 
 class ArrivalMove:
@@ -70,9 +103,19 @@ class ArrivalMove:
         self.arrival_direction = arrival_direction
         self.stretch_used = stretch_used
 
-    def __str__(self):
-        return "ArrivalMove(%s, %s, %s)" % (self.cell, self.direction, self.stretch_used)
+    def __eq__(self, other):
+        if not isinstance(other, ArrivalMove):
+            return NotImplemented
+        return self.arrival_direction == other.arrival_direction and self.cell == other.cell and self.stretch_used == other.stretch_used
 
+    def __hash__(self):
+        return hash(  (self.cell.x,self.cell.y,self.arrival_direction,self.stretch_used)  )
+
+    def __str__(self):
+        return "ArrivalMove(%s, %s, %s)" % (self.cell, self.arrival_direction, self.stretch_used)
+
+    def __repr__(self):
+        return str(self)
 
 
 def standard_dijkstra(grid):
@@ -100,32 +143,32 @@ def standard_dijkstra(grid):
 def get_possible_arrival_moves(cell, grid):
     routes = []
     if cell.x > 0:
-        routes.extend( [ (cell,Direction.right,1),(cell,Direction.right,2),(cell,Direction.right,3) ]   )
+        routes.extend( [ ArrivalMove(cell,Direction.right,1),ArrivalMove(cell,Direction.right,2),ArrivalMove(cell,Direction.right,3) ]   )
     if cell.x < len(grid[0]) - 1:
-        routes.extend( [ (cell,Direction.left,1),(cell,Direction.left,2),(cell,Direction.left,3) ]   )
+        routes.extend( [ ArrivalMove(cell,Direction.left,1),ArrivalMove(cell,Direction.left,2),ArrivalMove(cell,Direction.left,3) ]   )
     if cell.y > 0:
-        routes.extend( [ (cell,Direction.down,1),(cell,Direction.down,2),(cell,Direction.down,3) ]   )
+        routes.extend( [ ArrivalMove(cell,Direction.down,1),ArrivalMove(cell,Direction.down,2),ArrivalMove(cell,Direction.down,3) ]   )
     if cell.y < len(grid) - 1:
-        routes.extend( [ (cell,Direction.up,1),(cell,Direction.up,2),(cell,Direction.up,3) ]   )
+        routes.extend( [ ArrivalMove(cell,Direction.up,1),ArrivalMove(cell,Direction.up,2),ArrivalMove(cell,Direction.up,3) ]   )
     return routes
 
 
 
-def modified_get_neighbors(cell:MCell, incoming_dir:Direction, stretch_used_input:int, grid) -> list[MCell]:
+def modified_get_neighbors(move:ArrivalMove, grid) -> list[MCell]:
 
     neighbors = []
-    if cell.x > 0 and not (incoming_dir == Direction.left and stretch_used_input == 3) and dir != Direction.right:
-        neighbors.append( (grid[cell.y][cell.x - 1],Direction.left,stretch_used_input+1 if incoming_dir == Direction.left else 1) )
+    if move.cell.x > 0 and not (move.arrival_direction == Direction.left and move.stretch_used == 3) and move.arrival_direction != Direction.right:
+        neighbors.append( ArrivalMove(grid[move.cell.y][move.cell.x - 1],Direction.left,move.stretch_used+1 if move.arrival_direction == Direction.left else 1) )
 
-    if cell.x < len(grid[0]) - 1 and not (incoming_dir == Direction.right and stretch_used_input == 3) and dir != Direction.left:
-        neighbors.append((grid[cell.y][cell.x + 1],Direction.right,stretch_used_input+1 if incoming_dir == Direction.right else 1))
+    if move.cell.x < len(grid[0]) - 1 and not (move.arrival_direction == Direction.right and move.stretch_used == 3) and move.arrival_direction != Direction.left:
+        neighbors.append( ArrivalMove(grid[move.cell.y][move.cell.x + 1],Direction.right,move.stretch_used+1 if move.arrival_direction == Direction.right else 1))
 
-    if cell.y > 0 and not (incoming_dir == Direction.up and stretch_used_input == 3) and dir != Direction.down:
-        neighbors.append((grid[cell.y - 1][cell.x],Direction.up,stretch_used_input+1 if incoming_dir == Direction.up else 1))
+    if move.cell.y > 0 and not (move.arrival_direction == Direction.up and move.stretch_used == 3) and move.arrival_direction != Direction.down:
+        neighbors.append( ArrivalMove(grid[move.cell.y - 1][move.cell.x],Direction.up,move.stretch_used+1 if move.arrival_direction == Direction.up else 1))
 
-    if cell.y < len(grid) - 1 and not (incoming_dir == Direction.down and stretch_used_input == 3) and dir != Direction.up:
-        neighbors.append((grid[cell.y + 1][cell.x],Direction.down,stretch_used_input+1 if incoming_dir == Direction.down else 1))
-        
+    if move.cell.y < len(grid) - 1 and not (move.arrival_direction == Direction.down and move.stretch_used == 3) and move.arrival_direction != Direction.up:
+        neighbors.append( ArrivalMove(grid[move.cell.y + 1][move.cell.x],Direction.down,move.stretch_used+1 if move.arrival_direction == Direction.down else 1))
+
     return neighbors
 
 
@@ -133,21 +176,23 @@ def modified_get_neighbors(cell:MCell, incoming_dir:Direction, stretch_used_inpu
 def modified_dijkstra(grid):
     start = grid[0][0]
     start.distances_by_incoming_dir[Direction.down][0] = 0
-    unvisited = set[tuple[MCell,Direction,int]]()
+    unvisited1 = set[ArrivalMove]()
     for row in grid:
         for cell in row:
             arrival_routes = get_possible_arrival_moves(cell, grid)
-            unvisited.update( arrival_routes )
-    unvisited.add( (start,Direction.down,1) )
-    while len(unvisited) > 0: # TODO: We need to initalize the first one manually so the stretch would be 0
-        current = min(unvisited, key=lambda x: x[0].get_distance(x[1],x[2]) )
-        unvisited.remove(current)
-        possible_movements = modified_get_neighbors(current[0],current[1], current[2], grid)
+            unvisited1.update( arrival_routes )
+    unvisited1.add( ArrivalMove(start,Direction.down,0) ) # there is a special code for handling the stretch = 0 for cell 0,0
+    while len(unvisited1) > 0: # TODO: We need to initalize the first one manually so the stretch would be 0
+        # print (len(unvisited))
+
+        curr_move = min(unvisited1, key=lambda m: m.cell.get_distance(m.arrival_direction,m.stretch_used) )
+        unvisited1.remove(curr_move)
+        possible_movements = modified_get_neighbors(curr_move, grid)
         for possible_movement in possible_movements:
-            if possible_movement in unvisited:
-                alt = current[0].get_distance(current[1],current[2]) + possible_movement[0].value
-                if alt < possible_movement[0].get_distance(possible_movement[1],possible_movement[2]):
-                    possible_movement[0].distances_by_incoming_dir[possible_movement[1]][possible_movement[2] - 1] = alt
+            if possible_movement in unvisited1:
+                alt = curr_move.cell.get_distance(curr_move.arrival_direction,curr_move.stretch_used) + possible_movement.cell.value
+                if alt < possible_movement.cell.get_distance(possible_movement.arrival_direction ,possible_movement.stretch_used ):
+                    possible_movement.cell.distances_by_incoming_dir[possible_movement.arrival_direction ][possible_movement.stretch_used - 1] = alt
     return grid[-1][-1]
 
 
@@ -238,7 +283,9 @@ def _tests():
     grid = parse_input(test_input, "modified_version")
     exit_point = modified_dijkstra(grid)
     assert  exit_point.min_distance() == 2, exit_point.distances_by_incoming_dir
-    #
+
+
+
     test_input = """
         11111111
         22222221
@@ -249,13 +296,29 @@ def _tests():
 
     grid = parse_input(SAMPLE_INPUT,"modified_version" )
     exit_point = modified_dijkstra(grid)
-    print(exit_point.distances_by_incoming_dir)
-    print_minimal_path1(grid)
-    print_minimal_path(grid)
-    # assert exit_point.min_distance() == 102
+    # print(exit_point.distances_by_incoming_dir)
+    # print_minimal_path1(grid)
+    # print_minimal_path(grid)
+    assert exit_point.min_distance() == 102
 
+
+    test_input = """
+        19
+        19
+        19
+        11
+        """
+    grid = parse_input(test_input, "modified_version" )
+    exit_point = modified_dijkstra(grid)
+    assert exit_point.min_distance() == 4, exit_point.distances_by_incoming_dir
 
 
 
 if __name__ == "__main__":
     _tests()
+
+    # with open("r17_intput.txt") as f:
+    #     grid = parse_input(f.read().strip(), "modified_version")
+    #     exit_point = modified_dijkstra(grid)
+    #     print(exit_point.min_distance())
+    #     print(exit_point.distances_by_incoming_dir)
