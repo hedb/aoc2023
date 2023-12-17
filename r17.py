@@ -19,27 +19,6 @@ SAMPLE_INPUT = """
 """
 
 
-class HeapQSet:
-    def __init__(self):
-        self.heap = []
-        self.set = set()
-
-    def push(self, item):
-        if item not in self.set:
-            heapq.heappush(self.heap, item)
-            self.set.add(item)
-
-    def pop(self):
-        item = heapq.heappop(self.heap)
-        self.set.remove(item)
-        return item
-
-    def __len__(self):
-        return len(self.heap)
-
-    def __contains__(self, item):
-        return item in self.set
-
 
 def get_neighbors(cell, grid):
     neighbors = []
@@ -118,6 +97,44 @@ class ArrivalMove:
         return str(self)
 
 
+    def __lt__(self, other):
+        return hash(self) < hash(other)
+
+
+class HeapQSet:
+    def __init__(self):
+        self.heap = []
+        self.set = set()
+
+    def push(self, item: ArrivalMove):
+        if item not in self.set:
+            tmp_item = (item.cell.min_distance() ,item)
+            heapq.heappush(self.heap, tmp_item )
+            self.set.add( tmp_item )
+
+    def update(self, items):
+        for item in items:
+            self.push(item)
+
+    def pop(self):
+        item = heapq.heappop(self.heap)
+        self.set.remove(item)
+        return item[1]
+
+    def remove(self, item: ArrivalMove):
+        tmp_item = (item.cell.min_distance() ,item)
+        self.heap.remove(tmp_item)
+        self.set.remove(tmp_item)
+        heapq.heapify(self.heap)
+
+    def __len__(self):
+        return len(self.heap)
+
+    def __contains__(self, item: ArrivalMove):
+        tmp_item = (item.cell.min_distance() ,item)
+        return tmp_item in self.set
+
+
 def standard_dijkstra(grid):
     for row in grid:
         for cell in row:
@@ -176,23 +193,27 @@ def modified_get_neighbors(move:ArrivalMove, grid) -> list[MCell]:
 def modified_dijkstra(grid):
     start = grid[0][0]
     start.distances_by_incoming_dir[Direction.down][0] = 0
-    unvisited1 = set[ArrivalMove]()
+    unvisited = HeapQSet()
     for row in grid:
         for cell in row:
             arrival_routes = get_possible_arrival_moves(cell, grid)
-            unvisited1.update( arrival_routes )
-    unvisited1.add( ArrivalMove(start,Direction.down,0) ) # there is a special code for handling the stretch = 0 for cell 0,0
-    while len(unvisited1) > 0: # TODO: We need to initalize the first one manually so the stretch would be 0
+            unvisited.update( arrival_routes )
+    unvisited.push( ArrivalMove(start,Direction.down,0) ) # there is a special code for handling the stretch = 0 for cell 0,0
+    while len(unvisited) > 0: # TODO: We need to initalize the first one manually so the stretch would be 0
         # print (len(unvisited))
 
-        curr_move = min(unvisited1, key=lambda m: m.cell.get_distance(m.arrival_direction,m.stretch_used) )
-        unvisited1.remove(curr_move)
+        curr_move = unvisited.pop()
+        # min(unvisited1, key=lambda m: m.cell.get_distance(m.arrival_direction,m.stretch_used) )
+
         possible_movements = modified_get_neighbors(curr_move, grid)
         for possible_movement in possible_movements:
-            if possible_movement in unvisited1:
+            if possible_movement in unvisited:
                 alt = curr_move.cell.get_distance(curr_move.arrival_direction,curr_move.stretch_used) + possible_movement.cell.value
                 if alt < possible_movement.cell.get_distance(possible_movement.arrival_direction ,possible_movement.stretch_used ):
+                    unvisited.remove(possible_movement)
                     possible_movement.cell.distances_by_incoming_dir[possible_movement.arrival_direction ][possible_movement.stretch_used - 1] = alt
+                    unvisited.push(possible_movement)
+
     return grid[-1][-1]
 
 
@@ -296,9 +317,9 @@ def _tests():
 
     grid = parse_input(SAMPLE_INPUT,"modified_version" )
     exit_point = modified_dijkstra(grid)
-    # print(exit_point.distances_by_incoming_dir)
-    # print_minimal_path1(grid)
-    # print_minimal_path(grid)
+    print(exit_point.distances_by_incoming_dir)
+    print_minimal_path1(grid)
+    print_minimal_path(grid)
     assert exit_point.min_distance() == 102
 
 
