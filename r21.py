@@ -229,11 +229,12 @@ def _tests():
         # print_grid(grid)
         # print( f'steps:{terms[0]},expected:{terms[1]}, got:{ret}' )
 
-    for i in range(1,100):
-        print (f'{i},', end='\t')
-        grid, start_point = parse_input(SAMPLE_INPUT)
-        ret = part1(grid, start_point, i)
-        print(ret)
+    # for i in range(1,1000):
+    #     print (f'{i},', end='\t')
+    #     with open('r21_input.txt') as f:
+    #         grid, start_point = parse_input(f.read())
+    #         ret = part1(grid, start_point, i)
+    #         print(ret)
 
 
 if __name__ == '__main__':
