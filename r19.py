@@ -181,23 +181,26 @@ class Optional_Path:
         # 'px': {'id': 'px', 'conditions': [{'name': 'a', 'op': '<', 'value': 2006, 'res': 'qkq'},
         on_match, on_fail = None, None
 
-        if condition['op'] == '>' and condition['value'] < self.ranges[condition['name']][0] \
-            or condition['op'] == '<' and condition['value'] > self.ranges[condition['name']][1]:
+        # case 0 All In
+        if  condition['op'] == '>' and condition['value'] < self.ranges[condition['name']][0] \
+            or condition['op'] == '<' and condition['value'] >= self.ranges[condition['name']][1]:
             on_match = self
 
-        elif condition['op'] == '>' and condition['value'] > self.ranges[condition['name']][1] \
-            or condition['op'] == '<' and condition['value'] < self.ranges[condition['name']][0]:
+    # case 1    All Out
+        elif condition['op'] == '>' and (condition['value']+1) >= self.ranges[condition['name']][1] \
+            or condition['op'] == '<' and condition['value'] <= self.ranges[condition['name']][0]:
             on_fail = self
 
-        elif condition['op'] == '>' and condition['value'] >= self.ranges[condition['name']][0]  and condition['value'] < self.ranges[condition['name']][1]:
+        elif (condition['op'] == '>'
+              and condition['value'] >= self.ranges[condition['name']][0] ):
 
             on_match = Optional_Path( self.workflow, copy.deepcopy(self.ranges))
-            on_match.ranges[condition['name']][0] = condition['value']
+            on_match.ranges[condition['name']][0] = condition['value'] + 1
 
             on_fail = Optional_Path(self.workflow, self.ranges)
-            on_fail.ranges[condition['name']][1] = condition['value']
+            on_fail.ranges[condition['name']][1] = condition['value'] +1
 
-        elif condition['op'] == '<' and condition['value'] > self.ranges[condition['name']][0]  and condition['value'] <= self.ranges[condition['name']][1] :
+        elif condition['op'] == '<' and condition['value'] > self.ranges[condition['name']][0] :
 
             on_match = Optional_Path( self.workflow, copy.deepcopy(self.ranges))
             on_match.ranges[condition['name']][1] = condition['value']
@@ -281,16 +284,37 @@ def _tests():
     ret = part2(rules)
     assert ret[0] == 64015996000, ret
 
+
+
+    test_input = ''' \
+                in{x<3:ctwo,R}
+                ctwo{x>2:A,R}    
+            '''
+    rules, parts = parse_input(test_input)
+    ret = part2(rules)
+    assert ret[0] == 0, ret
+
+
+
+    test_input = ''' \
+                in{x>10:ctwo,R}
+                ctwo{x<11:A,R}    
+            '''
+    rules, parts = parse_input(test_input)
+    ret = part2(rules)
+    assert ret[0] == 0, ret
+
     rules, parts = parse_input(SAMPLE_INPUT)
     ret = part2(rules)
-    assert ret == 167409079868000, ret
+    assert ret[0]  == 167409079868000, ret
 
 
 
 if __name__ == '__main__':
     _tests()
 
-    # with open('r19_input.txt') as f:
-    #     rules, parts = parse_input(f.read())
-    #     ret = part1(rules, parts)
-    #     print(ret)
+    with open('r19_input.txt') as f:
+        rules, parts = parse_input(f.read())
+        # ret = part1(rules, parts)
+        ret = part2(rules)
+        print(ret)
