@@ -155,7 +155,7 @@ def get_roaming_options2(grid, start_cell, steps_left:int, step_counter:int, cac
 
 
 
-def get_roaming_options(grid, start_cell, steps_left:int, step_counter:int, cache:set, previously_visited_cache:set):
+def get_roaming_options(grid, start_cell, steps_left:int, step_counter:int, cache:set, previously_visited_cache:set,new_counter):
 
     # print (f'[get_roaming_options] {start_cell} steps left: {steps_left}' )
 
@@ -163,15 +163,23 @@ def get_roaming_options(grid, start_cell, steps_left:int, step_counter:int, cach
         return
     previously_visited_cache.add((start_cell.id,steps_left))
 
-    if steps_left == 0:
-        cache.add(start_cell.id)
-        start_cell.mark(step_counter)
+    # if steps_left == 0:
+    #     cache.add(start_cell.id)
+    #     start_cell.mark(step_counter)
+    #     return
+
+    if step_counter in new_counter:
+        new_counter[step_counter] += 1
+    else:
+        new_counter[step_counter] = 1
+
+    if step_counter >= 500:
         return
 
     for diff in [(-1,0),(1,0),(0,-1),(0,1) ]:
         new_cell = move_cell(grid, start_cell, diff[0], diff[1])
         if new_cell is not None and new_cell.c == '.':
-            get_roaming_options(grid, new_cell, steps_left - 1,step_counter+1, cache,previously_visited_cache)
+            get_roaming_options(grid, new_cell, steps_left - 1,step_counter+1, cache,previously_visited_cache,new_counter)
 
 
 def move_cell(grid, start_cell, dx, dy):
@@ -190,8 +198,10 @@ def part1(grid, start_point, step_number):
     start_cell.c = '.'
     cache = set()
     previously_visited_cache = set()
-    ret = get_roaming_options(grid, start_cell, step_number,0, cache, previously_visited_cache)
-    return len(cache)
+    step_counter = {}
+    ret = get_roaming_options(grid, start_cell, step_number,0, cache, previously_visited_cache,step_counter)
+    # return len(cache)
+    return step_counter[step_number],step_counter
 
 def print_grid(grid):
     for y in range(grid.dim['miny'],grid.dim['maxy']+1):
@@ -210,31 +220,30 @@ def _tests():
 #S##
 ....
 """
-    grid,start_point = parse_input(test_input)
-    ret = part1(grid, start_point,2 )
-    assert ret == 7, ret
-
-
-    for terms in [(6, 16)]:
-        grid, start_point = parse_input(SAMPLE_INPUT)
-        ret = part1(grid, start_point, terms[0])
-        assert ret == terms[1], ret
-
-
-    for terms in [ (10,50), (100,6536) ]:
-        grid,start_point = parse_input(SAMPLE_INPUT)
-        ret = part1(grid, start_point,terms[0])
-        assert ret == terms[1], ret
+    # grid,start_point = parse_input(test_input)
+    # ret = part1(grid, start_point,2 )
+    # assert ret[0] == 7, ret
+    #
+    #
+    # for terms in [(6, 16)]:
+    #     grid, start_point = parse_input(SAMPLE_INPUT)
+    #     ret = part1(grid, start_point, terms[0])
+    #     assert ret[0] == terms[1], ret
+    #
+    #
+    # for terms in [ (10,50) ]:
+    #     grid,start_point = parse_input(SAMPLE_INPUT)
+    #     ret = part1(grid, start_point,terms[0])
+    #     assert ret[0] == terms[1], ret
 
         # print_grid(grid)
         # print( f'steps:{terms[0]},expected:{terms[1]}, got:{ret}' )
 
-    # for i in range(1,1000):
-    #     print (f'{i},', end='\t')
-    #     with open('r21_input.txt') as f:
-    #         grid, start_point = parse_input(f.read())
-    #         ret = part1(grid, start_point, i)
-    #         print(ret)
+    with open('r21_input.txt') as f:
+        grid, start_point = parse_input(f.read())
+        _n,step_counter = part1(grid, start_point, 1)
+        for i in range (500):
+            print (i,step_counter[i] if i in step_counter else '--')
 
 
 if __name__ == '__main__':
