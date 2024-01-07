@@ -128,7 +128,7 @@ def part_a(lines: list[str]):
 
     return sum_vertical*100 + sum_horizontal
 
-def tests():
+def _tests():
     input = """\
 .#.#
 .#.#
@@ -175,15 +175,16 @@ def tests():
 
 
 
-def test_part_a():
-    # ret = part_a(SAMPLE_INPUT_1.splitlines())
-    # assert ret == 405, ret
+def _test_part_a():
+    ret = part_a(SAMPLE_INPUT_1.splitlines())
+    assert ret == 405, ret
 
     # print(part_a(SAMPLE_INPUT_2.splitlines()))
     # print(part_a(SAMPLE_INPUT_3.splitlines()))
     # print(part_a(SAMPLE_INPUT_4.splitlines()))
 
-    with open('r13_sample_input1.txt') as f:
+    # with open('r13_sample_input1.txt') as f:
+    with open('r13_input.txt') as f:
         lines = f.read().splitlines()
         ret = part_a(lines)
         print(ret)
@@ -197,4 +198,4 @@ if __name__ == "__main__":
     #         print(line)
     # tests()
 
-    test_part_a()
+    _test_part_a()
